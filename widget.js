@@ -100,16 +100,28 @@ function DearMonthWidget() {
             .split(/(?:\r\n|\r|\n|\u2028|\u2029)/)
             .map((line) => line.replace(/\s+/g, " ").trim())
             .filter((line) => line.length > 0);
-        if (explicitLines.length === 1) {
-            const singleLine = explicitLines[0];
-            const totalLimit = 24;
-            return [singleLine.length > totalLimit ? `${singleLine.slice(0, totalLimit - 1)}…` : singleLine];
-        }
-        const previewLines = explicitLines.slice(0, 3);
-        if (explicitLines.length > 3 && previewLines.length === 3 && !previewLines[2].endsWith("…")) {
-            previewLines[2] = `${previewLines[2]}…`;
-        }
-        return previewLines;
+        return explicitLines;
+    };
+    const getLinesCount = (text) => {
+        const lines = formatMemoPreviewLines(text);
+        const useBullets = lines.length > 1;
+        // Figma 텍스트 컴포넌트 실측 및 한글 폰트(24px) 기준 여유 허용치 대폭 상향
+        const capacity = useBullets ? 9.5 : 10.5;
+        let totalComputedLines = 0;
+        lines.forEach(line => {
+            let width = 0;
+            for (let i = 0; i < line.length; i++) {
+                // 영어/숫자/공백은 반각(0.55), 한글은 전각(1)
+                if (line.charCodeAt(i) < 128) {
+                    width += 0.55;
+                }
+                else {
+                    width += 1;
+                }
+            }
+            totalComputedLines += Math.max(1, Math.ceil(width / capacity));
+        });
+        return totalComputedLines;
     };
     const selectedMemo = selectedDateKey ? (_a = memos.get(selectedDateKey)) !== null && _a !== void 0 ? _a : "" : "";
     const setMemoForSelected = (text) => {
@@ -188,28 +200,44 @@ function DearMonthWidget() {
                                 } }))))),
             figma.widget.h(AutoLayout, { direction: "horizontal", width: "fill-parent", spacing: s(8), padding: { left: s(8), right: s(8), top: s(2), bottom: s(2) } }, daysOfWeek.map((day) => (figma.widget.h(AutoLayout, { key: day, width: "fill-parent", horizontalAlignItems: "center" },
                 figma.widget.h(Text, { fontSize: s(29), fontWeight: "bold", fill: day === "일" ? PALETTE.holidayText : PALETTE.muted }, day))))),
-            figma.widget.h(AutoLayout, { direction: "vertical", width: "fill-parent", spacing: s(8) }, weeks.map((week, weekIndex) => (figma.widget.h(AutoLayout, { key: `week-${weekIndex}`, direction: "horizontal", width: "fill-parent", spacing: s(8) }, week.map((day, dayIndex) => {
-                var _a;
-                if (!day) {
-                    return (figma.widget.h(AutoLayout, { key: `blank-${weekIndex}-${dayIndex}`, width: "fill-parent", height: s(154), fill: "#EFEFEF", cornerRadius: s(18) }));
-                }
-                const dateKey = makeDateKey(day);
-                const assignedColor = importantColorsMap.get(dateKey);
-                const isImportant = assignedColor !== undefined;
-                const isSelected = selectedDateKey === dateKey;
-                const mmdd = `${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-                const isLegalHoliday = legalHolidaySet.has(mmdd);
-                const isRedText = isLegalHoliday || dayIndex === 0;
-                const memoPreviewLines = formatMemoPreviewLines((_a = memos.get(dateKey)) !== null && _a !== void 0 ? _a : "");
-                const useBullets = memoPreviewLines.length > 1;
-                return (figma.widget.h(AutoLayout, { key: dateKey, width: "fill-parent", height: s(154), padding: { top: s(8), bottom: s(8), left: s(10), right: s(10) }, direction: "vertical", spacing: s(2), fill: isImportant ? assignedColor : isSelected ? "#F0F0F0" : PALETTE.card, cornerRadius: s(18), stroke: isSelected ? PALETTE.black : isImportant ? "#0000001F" : "#0000001F", strokeWidth: isSelected ? 2 : 1, onClick: () => setSelectedDateKey(dateKey), hoverStyle: { fill: isImportant ? assignedColor : "#F4F4F4", opacity: isImportant ? 0.9 : 1 } },
-                    figma.widget.h(AutoLayout, { width: "fill-parent", direction: "horizontal", verticalAlignItems: "start" },
-                        figma.widget.h(Text, { width: "fill-parent", fontSize: Math.round(s(32)), fontWeight: "bold", fill: isImportant ? PALETTE.white : isRedText ? PALETTE.holidayText : PALETTE.black }, String(day).padStart(2, "0"))),
-                    figma.widget.h(AutoLayout, { direction: "vertical", width: "fill-parent", spacing: s(1) }, memoPreviewLines.map((line, index) => (useBullets ? (figma.widget.h(AutoLayout, { key: `${dateKey}-memo-${index}`, direction: "horizontal", width: "fill-parent", spacing: s(4), verticalAlignItems: "center" },
-                        figma.widget.h(AutoLayout, { width: s(10), horizontalAlignItems: "center" },
-                            figma.widget.h(AutoLayout, { width: s(5), height: s(5), cornerRadius: 999, fill: isImportant ? PALETTE.white : isRedText ? PALETTE.holidayText : PALETTE.muted })),
-                        figma.widget.h(Text, { width: "fill-parent", fontSize: Math.round(s(24)), fontWeight: "bold", fill: isImportant ? PALETTE.white : isRedText ? PALETTE.holidayText : PALETTE.muted }, line))) : (figma.widget.h(Text, { key: `${dateKey}-memo-${index}`, width: "fill-parent", fontSize: Math.round(s(24)), fontWeight: "bold", fill: isImportant ? PALETTE.white : isRedText ? PALETTE.holidayText : PALETTE.muted }, line)))))));
-            }))))),
+            figma.widget.h(AutoLayout, { direction: "vertical", width: "fill-parent", spacing: s(8) }, weeks.map((week, weekIndex) => {
+                let maxLinesInThisWeek = 0;
+                week.forEach((day) => {
+                    var _a;
+                    if (day !== null) {
+                        const dateKey = makeDateKey(day);
+                        const text = (_a = memos.get(dateKey)) !== null && _a !== void 0 ? _a : "";
+                        if (text) {
+                            maxLinesInThisWeek = Math.max(maxLinesInThisWeek, getLinesCount(text));
+                        }
+                    }
+                });
+                const dynamicCellHeight = maxLinesInThisWeek > 3
+                    ? s(154) + (maxLinesInThisWeek - 3) * s(34)
+                    : s(154);
+                return (figma.widget.h(AutoLayout, { key: `week-${weekIndex}`, direction: "horizontal", width: "fill-parent", spacing: s(8) }, week.map((day, dayIndex) => {
+                    var _a;
+                    if (!day) {
+                        return (figma.widget.h(AutoLayout, { key: `blank-${weekIndex}-${dayIndex}`, width: "fill-parent", height: dynamicCellHeight, fill: "#EFEFEF", cornerRadius: s(18) }));
+                    }
+                    const dateKey = makeDateKey(day);
+                    const assignedColor = importantColorsMap.get(dateKey);
+                    const isImportant = assignedColor !== undefined;
+                    const isSelected = selectedDateKey === dateKey;
+                    const mmdd = `${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+                    const isLegalHoliday = legalHolidaySet.has(mmdd);
+                    const isRedText = isLegalHoliday || dayIndex === 0;
+                    const memoPreviewLines = formatMemoPreviewLines((_a = memos.get(dateKey)) !== null && _a !== void 0 ? _a : "");
+                    const useBullets = memoPreviewLines.length > 1;
+                    return (figma.widget.h(AutoLayout, { key: dateKey, width: "fill-parent", height: dynamicCellHeight, padding: { top: s(8), bottom: s(8), left: s(10), right: s(10) }, direction: "vertical", spacing: s(2), fill: isImportant ? assignedColor : isSelected ? "#F0F0F0" : PALETTE.card, cornerRadius: s(18), stroke: isSelected ? PALETTE.black : isImportant ? "#0000001F" : "#0000001F", strokeWidth: isSelected ? 2 : 1, onClick: () => setSelectedDateKey(dateKey), hoverStyle: { fill: isImportant ? assignedColor : "#F4F4F4", opacity: isImportant ? 0.9 : 1 } },
+                        figma.widget.h(AutoLayout, { width: "fill-parent", direction: "horizontal", verticalAlignItems: "start" },
+                            figma.widget.h(Text, { width: "fill-parent", fontSize: Math.round(s(32)), fontWeight: "bold", fill: isImportant ? PALETTE.white : isRedText ? PALETTE.holidayText : PALETTE.black }, String(day).padStart(2, "0"))),
+                        figma.widget.h(AutoLayout, { direction: "vertical", width: "fill-parent", spacing: s(1) }, memoPreviewLines.map((line, index) => (useBullets ? (figma.widget.h(AutoLayout, { key: `${dateKey}-memo-${index}`, direction: "horizontal", width: "fill-parent", spacing: s(4), verticalAlignItems: "start" },
+                            figma.widget.h(AutoLayout, { width: s(10), padding: { top: s(11) }, horizontalAlignItems: "center" },
+                                figma.widget.h(AutoLayout, { width: s(5), height: s(5), cornerRadius: 999, fill: isImportant ? PALETTE.white : isRedText ? PALETTE.holidayText : PALETTE.muted })),
+                            figma.widget.h(Text, { width: "fill-parent", fontSize: Math.round(s(24)), fontWeight: "bold", fill: isImportant ? PALETTE.white : isRedText ? PALETTE.holidayText : PALETTE.muted }, line))) : (figma.widget.h(Text, { key: `${dateKey}-memo-${index}`, width: "fill-parent", fontSize: Math.round(s(24)), fontWeight: "bold", fill: isImportant ? PALETTE.white : isRedText ? PALETTE.holidayText : PALETTE.muted }, line)))))));
+                })));
+            })),
             figma.widget.h(AutoLayout, { direction: "horizontal", width: "fill-parent", padding: s(14), spacing: s(10), verticalAlignItems: "center", fill: PALETTE.card, cornerRadius: s(18), stroke: "#0000001F", strokeWidth: 1 },
                 figma.widget.h(AutoLayout, { width: s(220), horizontalAlignItems: "center" },
                     figma.widget.h(Text, { fontSize: Math.round(s(18) * 1.5), fontWeight: "bold", fill: PALETTE.black }, selectedDateKey ? selectedDateKey.replace(/^\d{4}-/, "") : "")),

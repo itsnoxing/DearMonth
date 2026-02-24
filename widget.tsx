@@ -118,17 +118,29 @@ function DearMonthWidget() {
       .map((line) => line.replace(/\s+/g, " ").trim())
       .filter((line) => line.length > 0);
 
-    if (explicitLines.length === 1) {
-      const singleLine = explicitLines[0];
-      const totalLimit = 24;
-      return [singleLine.length > totalLimit ? `${singleLine.slice(0, totalLimit - 1)}…` : singleLine];
-    }
+    return explicitLines;
+  };
 
-    const previewLines = explicitLines.slice(0, 3);
-    if (explicitLines.length > 3 && previewLines.length === 3 && !previewLines[2].endsWith("…")) {
-      previewLines[2] = `${previewLines[2]}…`;
-    }
-    return previewLines;
+  const getLinesCount = (text: string) => {
+    const lines = formatMemoPreviewLines(text);
+    const useBullets = lines.length > 1;
+    // Figma 텍스트 컴포넌트 실측 및 한글 폰트(24px) 기준 여유 허용치 대폭 상향
+    const capacity = useBullets ? 9.5 : 10.5;
+
+    let totalComputedLines = 0;
+    lines.forEach(line => {
+      let width = 0;
+      for (let i = 0; i < line.length; i++) {
+        // 영어/숫자/공백은 반각(0.55), 한글은 전각(1)
+        if (line.charCodeAt(i) < 128) {
+          width += 0.55;
+        } else {
+          width += 1;
+        }
+      }
+      totalComputedLines += Math.max(1, Math.ceil(width / capacity));
+    });
+    return totalComputedLines;
   };
 
   const selectedMemo = selectedDateKey ? memos.get(selectedDateKey) ?? "" : "";
@@ -309,71 +321,98 @@ function DearMonthWidget() {
         </AutoLayout>
 
         <AutoLayout direction="vertical" width="fill-parent" spacing={s(8)}>
-          {weeks.map((week, weekIndex) => (
-            <AutoLayout key={`week-${weekIndex}`} direction="horizontal" width="fill-parent" spacing={s(8)}>
-              {week.map((day, dayIndex) => {
-                if (!day) {
+          {weeks.map((week, weekIndex) => {
+            let maxLinesInThisWeek = 0;
+            week.forEach((day) => {
+              if (day !== null) {
+                const dateKey = makeDateKey(day);
+                const text = memos.get(dateKey) ?? "";
+                if (text) {
+                  maxLinesInThisWeek = Math.max(maxLinesInThisWeek, getLinesCount(text));
+                }
+              }
+            });
+
+            const dynamicCellHeight = maxLinesInThisWeek > 3
+              ? s(154) + (maxLinesInThisWeek - 3) * s(34)
+              : s(154);
+
+            return (
+              <AutoLayout key={`week-${weekIndex}`} direction="horizontal" width="fill-parent" spacing={s(8)}>
+                {week.map((day, dayIndex) => {
+                  if (!day) {
+                    return (
+                      <AutoLayout
+                        key={`blank-${weekIndex}-${dayIndex}`}
+                        width="fill-parent"
+                        height={dynamicCellHeight}
+                        fill="#EFEFEF"
+                        cornerRadius={s(18)}
+                      />
+                    );
+                  }
+
+                  const dateKey = makeDateKey(day);
+                  const assignedColor = importantColorsMap.get(dateKey);
+                  const isImportant = assignedColor !== undefined;
+                  const isSelected = selectedDateKey === dateKey;
+                  const mmdd = `${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+                  const isLegalHoliday = legalHolidaySet.has(mmdd);
+                  const isRedText = isLegalHoliday || dayIndex === 0;
+
+                  const memoPreviewLines = formatMemoPreviewLines(memos.get(dateKey) ?? "");
+                  const useBullets = memoPreviewLines.length > 1;
+
                   return (
                     <AutoLayout
-                      key={`blank-${weekIndex}-${dayIndex}`}
+                      key={dateKey}
                       width="fill-parent"
-                      height={s(154)}
-                      fill="#EFEFEF"
+                      height={dynamicCellHeight}
+                      padding={{ top: s(8), bottom: s(8), left: s(10), right: s(10) }}
+                      direction="vertical"
+                      spacing={s(2)}
+                      fill={isImportant ? assignedColor : isSelected ? "#F0F0F0" : PALETTE.card}
                       cornerRadius={s(18)}
-                    />
-                  );
-                }
-
-                const dateKey = makeDateKey(day);
-                const assignedColor = importantColorsMap.get(dateKey);
-                const isImportant = assignedColor !== undefined;
-                const isSelected = selectedDateKey === dateKey;
-                const mmdd = `${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-                const isLegalHoliday = legalHolidaySet.has(mmdd);
-                const isRedText = isLegalHoliday || dayIndex === 0;
-
-                const memoPreviewLines = formatMemoPreviewLines(memos.get(dateKey) ?? "");
-                const useBullets = memoPreviewLines.length > 1;
-
-                return (
-                  <AutoLayout
-                    key={dateKey}
-                    width="fill-parent"
-                    height={s(154)}
-                    padding={{ top: s(8), bottom: s(8), left: s(10), right: s(10) }}
-                    direction="vertical"
-                    spacing={s(2)}
-                    fill={isImportant ? assignedColor : isSelected ? "#F0F0F0" : PALETTE.card}
-                    cornerRadius={s(18)}
-                    stroke={isSelected ? PALETTE.black : isImportant ? "#0000001F" : "#0000001F"}
-                    strokeWidth={isSelected ? 2 : 1}
-                    onClick={() => setSelectedDateKey(dateKey)}
-                    hoverStyle={{ fill: isImportant ? assignedColor : "#F4F4F4", opacity: isImportant ? 0.9 : 1 }}
-                  >
-                    <AutoLayout width="fill-parent" direction="horizontal" verticalAlignItems="start">
-                      <Text width="fill-parent" fontSize={Math.round(s(32))} fontWeight="bold" fill={isImportant ? PALETTE.white : isRedText ? PALETTE.holidayText : PALETTE.black}>
-                        {String(day).padStart(2, "0")}
-                      </Text>
-                    </AutoLayout>
-                    <AutoLayout direction="vertical" width="fill-parent" spacing={s(1)}>
-                      {memoPreviewLines.map((line, index) => (
-                        useBullets ? (
-                          <AutoLayout
-                            key={`${dateKey}-memo-${index}`}
-                            direction="horizontal"
-                            width="fill-parent"
-                            spacing={s(4)}
-                            verticalAlignItems="center"
-                          >
-                            <AutoLayout width={s(10)} horizontalAlignItems="center">
-                              <AutoLayout
-                                width={s(5)}
-                                height={s(5)}
-                                cornerRadius={999}
+                      stroke={isSelected ? PALETTE.black : isImportant ? "#0000001F" : "#0000001F"}
+                      strokeWidth={isSelected ? 2 : 1}
+                      onClick={() => setSelectedDateKey(dateKey)}
+                      hoverStyle={{ fill: isImportant ? assignedColor : "#F4F4F4", opacity: isImportant ? 0.9 : 1 }}
+                    >
+                      <AutoLayout width="fill-parent" direction="horizontal" verticalAlignItems="start">
+                        <Text width="fill-parent" fontSize={Math.round(s(32))} fontWeight="bold" fill={isImportant ? PALETTE.white : isRedText ? PALETTE.holidayText : PALETTE.black}>
+                          {String(day).padStart(2, "0")}
+                        </Text>
+                      </AutoLayout>
+                      <AutoLayout direction="vertical" width="fill-parent" spacing={s(1)}>
+                        {memoPreviewLines.map((line, index) => (
+                          useBullets ? (
+                            <AutoLayout
+                              key={`${dateKey}-memo-${index}`}
+                              direction="horizontal"
+                              width="fill-parent"
+                              spacing={s(4)}
+                              verticalAlignItems="start"
+                            >
+                              <AutoLayout width={s(10)} padding={{ top: s(11) }} horizontalAlignItems="center">
+                                <AutoLayout
+                                  width={s(5)}
+                                  height={s(5)}
+                                  cornerRadius={999}
+                                  fill={isImportant ? PALETTE.white : isRedText ? PALETTE.holidayText : PALETTE.muted}
+                                />
+                              </AutoLayout>
+                              <Text
+                                width="fill-parent"
+                                fontSize={Math.round(s(24))}
+                                fontWeight="bold"
                                 fill={isImportant ? PALETTE.white : isRedText ? PALETTE.holidayText : PALETTE.muted}
-                              />
+                              >
+                                {line}
+                              </Text>
                             </AutoLayout>
+                          ) : (
                             <Text
+                              key={`${dateKey}-memo-${index}`}
                               width="fill-parent"
                               fontSize={Math.round(s(24))}
                               fontWeight="bold"
@@ -381,25 +420,15 @@ function DearMonthWidget() {
                             >
                               {line}
                             </Text>
-                          </AutoLayout>
-                        ) : (
-                          <Text
-                            key={`${dateKey}-memo-${index}`}
-                            width="fill-parent"
-                            fontSize={Math.round(s(24))}
-                            fontWeight="bold"
-                            fill={isImportant ? PALETTE.white : isRedText ? PALETTE.holidayText : PALETTE.muted}
-                          >
-                            {line}
-                          </Text>
-                        )
-                      ))}
+                          )
+                        ))}
+                      </AutoLayout>
                     </AutoLayout>
-                  </AutoLayout>
-                );
-              })}
-            </AutoLayout>
-          ))}
+                  );
+                })}
+              </AutoLayout>
+            );
+          })}
         </AutoLayout>
 
         <AutoLayout
