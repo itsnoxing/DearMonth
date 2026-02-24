@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "es2017",
+    "lib": ["es2017"],
+    "strict": true,
+    "typeRoots": [
+      "./node_modules/@types",
+      "./node_modules/@figma"
+    ],
+    "jsx": "react",
+    "jsxFactory": "figma.widget.h",
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "include": ["widget.tsx"]
+}
