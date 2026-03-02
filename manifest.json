@@ -1,12 +1,17 @@
 {
   "name": "DearMonth",
-  "id": "123456789",
+  "id": "1610200272086808355",
   "api": "1.0.0",
   "main": "widget.js",
   "widgetApi": "1.0.0",
   "containsWidget": true,
-  "editorType": ["figjam", "figma"],
+  "editorType": [
+    "figma"
+  ],
   "networkAccess": {
-    "allowedDomains": ["none"]
-  }
+    "allowedDomains": [
+      "none"
+    ]
+  },
+  "documentAccess": "dynamic-page"
 }
