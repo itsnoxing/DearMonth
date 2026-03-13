@@ -1,6 +1,6 @@
 "use strict";
 const { widget } = figma;
-const { AutoLayout, Text, Input, useSyncedState, useSyncedMap } = widget;
+const { AutoLayout, Text, Input, useSyncedState, useSyncedMap, SVG } = widget;
 const PALETTE = {
     bg: "#FAFAFA",
     card: "#FFFFFF",
@@ -229,13 +229,18 @@ function DearMonthWidget() {
                     const isRedText = isLegalHoliday || dayIndex === 0;
                     const memoPreviewLines = formatMemoPreviewLines((_a = memos.get(dateKey)) !== null && _a !== void 0 ? _a : "");
                     const useBullets = memoPreviewLines.length > 1;
-                    return (figma.widget.h(AutoLayout, { key: dateKey, width: "fill-parent", height: dynamicCellHeight, padding: { top: s(8), bottom: s(8), left: s(10), right: s(10) }, direction: "vertical", spacing: s(2), fill: isImportant ? assignedColor : isSelected ? "#F0F0F0" : PALETTE.card, cornerRadius: s(18), stroke: isSelected ? PALETTE.black : isImportant ? "#0000001F" : "#0000001F", strokeWidth: isSelected ? 2 : 1, onClick: () => setSelectedDateKey(dateKey), hoverStyle: { fill: isImportant ? assignedColor : "#F4F4F4", opacity: isImportant ? 0.9 : 1 } },
+                    return (figma.widget.h(AutoLayout, { key: dateKey, width: "fill-parent", height: dynamicCellHeight, padding: { top: s(8), bottom: s(8), left: s(10), right: s(10) }, direction: "vertical", spacing: s(2), fill: isImportant && assignedColor !== "X" ? assignedColor : isSelected ? "#F0F0F0" : PALETTE.card, cornerRadius: s(18), stroke: isSelected ? PALETTE.black : isImportant ? "#0000001F" : "#0000001F", strokeWidth: isSelected ? 2 : 1, onClick: () => setSelectedDateKey(dateKey), hoverStyle: { fill: isImportant && assignedColor !== "X" ? assignedColor : "#F4F4F4", opacity: isImportant && assignedColor !== "X" ? 0.9 : 1 } },
+                        assignedColor === "X" && (figma.widget.h(AutoLayout, { positioning: "absolute", width: "fill-parent", height: "fill-parent", horizontalAlignItems: "center", verticalAlignItems: "center", padding: { top: s(24), bottom: s(0), left: s(0), right: s(0) }, opacity: 0.15 },
+                            figma.widget.h(SVG, { src: `<svg width="${s(80)}" height="${s(80)}" viewBox="0 0 100 100">
+                                   <line x1="10" y1="10" x2="90" y2="90" stroke="#000000" stroke-width="16" stroke-linecap="round" />
+                                   <line x1="90" y1="10" x2="10" y2="90" stroke="#000000" stroke-width="16" stroke-linecap="round" />
+                                 </svg>` }))),
                         figma.widget.h(AutoLayout, { width: "fill-parent", direction: "horizontal", verticalAlignItems: "start" },
-                            figma.widget.h(Text, { width: "fill-parent", fontSize: Math.round(s(32)), fontWeight: "bold", fill: isImportant ? PALETTE.white : isRedText ? PALETTE.holidayText : PALETTE.black }, String(day).padStart(2, "0"))),
+                            figma.widget.h(Text, { width: "fill-parent", fontSize: Math.round(s(32)), fontWeight: "bold", fill: isImportant && assignedColor !== "X" ? PALETTE.white : isRedText ? PALETTE.holidayText : PALETTE.black }, String(day).padStart(2, "0"))),
                         figma.widget.h(AutoLayout, { direction: "vertical", width: "fill-parent", spacing: s(1) }, memoPreviewLines.map((line, index) => (useBullets ? (figma.widget.h(AutoLayout, { key: `${dateKey}-memo-${index}`, direction: "horizontal", width: "fill-parent", spacing: s(4), verticalAlignItems: "start" },
                             figma.widget.h(AutoLayout, { width: s(10), padding: { top: s(11) }, horizontalAlignItems: "center" },
-                                figma.widget.h(AutoLayout, { width: s(5), height: s(5), cornerRadius: 999, fill: isImportant ? PALETTE.white : isRedText ? PALETTE.holidayText : PALETTE.muted })),
-                            figma.widget.h(Text, { width: "fill-parent", fontSize: Math.round(s(24)), fontWeight: "bold", fill: isImportant ? PALETTE.white : isRedText ? PALETTE.holidayText : PALETTE.muted }, line))) : (figma.widget.h(Text, { key: `${dateKey}-memo-${index}`, width: "fill-parent", fontSize: Math.round(s(24)), fontWeight: "bold", fill: isImportant ? PALETTE.white : isRedText ? PALETTE.holidayText : PALETTE.muted }, line)))))));
+                                figma.widget.h(AutoLayout, { width: s(5), height: s(5), cornerRadius: 999, fill: isImportant && assignedColor !== "X" ? PALETTE.white : isRedText ? PALETTE.holidayText : PALETTE.muted })),
+                            figma.widget.h(Text, { width: "fill-parent", fontSize: Math.round(s(24)), fontWeight: "bold", fill: isImportant && assignedColor !== "X" ? PALETTE.white : isRedText ? PALETTE.holidayText : PALETTE.black }, line))) : (figma.widget.h(Text, { key: `${dateKey}-memo-${index}`, width: "fill-parent", fontSize: Math.round(s(24)), fontWeight: "bold", fill: isImportant && assignedColor !== "X" ? PALETTE.white : isRedText ? PALETTE.holidayText : PALETTE.black }, line)))))));
                 })));
             })),
             figma.widget.h(AutoLayout, { direction: "horizontal", width: "fill-parent", padding: s(14), spacing: s(10), verticalAlignItems: "center", fill: PALETTE.card, cornerRadius: s(18), stroke: "#0000001F", strokeWidth: 1 },
@@ -249,6 +254,9 @@ function DearMonthWidget() {
                 figma.widget.h(AutoLayout, { direction: "horizontal", spacing: s(8) },
                     figma.widget.h(AutoLayout, { width: s(44), height: s(44), cornerRadius: 999, fill: "#FF3B30", onClick: () => toggleImportantColor(selectedDateKey, "#FF3B30"), hoverStyle: { opacity: 0.8 } }),
                     figma.widget.h(AutoLayout, { width: s(44), height: s(44), cornerRadius: 999, fill: "#007AFF", onClick: () => toggleImportantColor(selectedDateKey, "#007AFF"), hoverStyle: { opacity: 0.8 } }),
-                    figma.widget.h(AutoLayout, { width: s(44), height: s(44), cornerRadius: 999, fill: "#FFCC00", onClick: () => toggleImportantColor(selectedDateKey, "#FFCC00"), hoverStyle: { opacity: 0.8 } }))))));
+                    figma.widget.h(AutoLayout, { width: s(44), height: s(44), cornerRadius: 999, fill: "#FFCC00", onClick: () => toggleImportantColor(selectedDateKey, "#FFCC00"), hoverStyle: { opacity: 0.8 } }),
+                    figma.widget.h(AutoLayout, { width: s(44), height: s(44), cornerRadius: 999, fill: "#8E8E93", onClick: () => toggleImportantColor(selectedDateKey, "#8E8E93"), hoverStyle: { opacity: 0.8 } }),
+                    figma.widget.h(AutoLayout, { width: s(44), height: s(44), cornerRadius: 999, fill: "#EFEFEF", stroke: "#0000001F", strokeWidth: 1, horizontalAlignItems: "center", verticalAlignItems: "center", onClick: () => toggleImportantColor(selectedDateKey, "X"), hoverStyle: { opacity: 0.8, fill: "#E0E0E0" } },
+                        figma.widget.h(Text, { fontSize: s(24), fontWeight: "bold", fill: "#000000" }, "X")))))));
 }
 widget.register(DearMonthWidget);

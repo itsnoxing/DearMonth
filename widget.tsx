@@ -1,5 +1,5 @@
 const { widget } = figma;
-const { AutoLayout, Text, Input, useSyncedState, useSyncedMap } = widget;
+const { AutoLayout, Text, Input, useSyncedState, useSyncedMap, SVG } = widget;
 
 const PALETTE = {
   bg: "#FAFAFA",
@@ -371,15 +371,35 @@ function DearMonthWidget() {
                       padding={{ top: s(8), bottom: s(8), left: s(10), right: s(10) }}
                       direction="vertical"
                       spacing={s(2)}
-                      fill={isImportant ? assignedColor : isSelected ? "#F0F0F0" : PALETTE.card}
+                      fill={isImportant && assignedColor !== "X" ? assignedColor : isSelected ? "#F0F0F0" : PALETTE.card}
                       cornerRadius={s(18)}
                       stroke={isSelected ? PALETTE.black : isImportant ? "#0000001F" : "#0000001F"}
                       strokeWidth={isSelected ? 2 : 1}
                       onClick={() => setSelectedDateKey(dateKey)}
-                      hoverStyle={{ fill: isImportant ? assignedColor : "#F4F4F4", opacity: isImportant ? 0.9 : 1 }}
+                      hoverStyle={{ fill: isImportant && assignedColor !== "X" ? assignedColor : "#F4F4F4", opacity: isImportant && assignedColor !== "X" ? 0.9 : 1 }}
                     >
+                      {/* Transparent X Overlay */}
+                      {assignedColor === "X" && (
+                        <AutoLayout
+                          positioning="absolute"
+                          width="fill-parent"
+                          height="fill-parent"
+                          horizontalAlignItems="center"
+                          verticalAlignItems="center"
+                          padding={{ top: s(24), bottom: s(0), left: s(0), right: s(0) }} // 위에서 약간만 띄우고 나머지는 자동 중앙 정렬
+                          opacity={0.15} // 투명도 15%
+                        >
+                          <SVG
+                            src={`<svg width="${s(80)}" height="${s(80)}" viewBox="0 0 100 100">
+                                   <line x1="10" y1="10" x2="90" y2="90" stroke="#000000" stroke-width="16" stroke-linecap="round" />
+                                   <line x1="90" y1="10" x2="10" y2="90" stroke="#000000" stroke-width="16" stroke-linecap="round" />
+                                 </svg>`}
+                          />
+                        </AutoLayout>
+                      )}
+                      
                       <AutoLayout width="fill-parent" direction="horizontal" verticalAlignItems="start">
-                        <Text width="fill-parent" fontSize={Math.round(s(32))} fontWeight="bold" fill={isImportant ? PALETTE.white : isRedText ? PALETTE.holidayText : PALETTE.black}>
+                        <Text width="fill-parent" fontSize={Math.round(s(32))} fontWeight="bold" fill={isImportant && assignedColor !== "X" ? PALETTE.white : isRedText ? PALETTE.holidayText : PALETTE.black}>
                           {String(day).padStart(2, "0")}
                         </Text>
                       </AutoLayout>
@@ -398,14 +418,14 @@ function DearMonthWidget() {
                                   width={s(5)}
                                   height={s(5)}
                                   cornerRadius={999}
-                                  fill={isImportant ? PALETTE.white : isRedText ? PALETTE.holidayText : PALETTE.muted}
+                                  fill={isImportant && assignedColor !== "X" ? PALETTE.white : isRedText ? PALETTE.holidayText : PALETTE.muted}
                                 />
                               </AutoLayout>
                               <Text
                                 width="fill-parent"
                                 fontSize={Math.round(s(24))}
                                 fontWeight="bold"
-                                fill={isImportant ? PALETTE.white : isRedText ? PALETTE.holidayText : PALETTE.muted}
+                                fill={isImportant && assignedColor !== "X" ? PALETTE.white : isRedText ? PALETTE.holidayText : PALETTE.black}
                               >
                                 {line}
                               </Text>
@@ -416,7 +436,7 @@ function DearMonthWidget() {
                               width="fill-parent"
                               fontSize={Math.round(s(24))}
                               fontWeight="bold"
-                              fill={isImportant ? PALETTE.white : isRedText ? PALETTE.holidayText : PALETTE.muted}
+                              fill={isImportant && assignedColor !== "X" ? PALETTE.white : isRedText ? PALETTE.holidayText : PALETTE.black}
                             >
                               {line}
                             </Text>
@@ -490,6 +510,30 @@ function DearMonthWidget() {
               onClick={() => toggleImportantColor(selectedDateKey, "#FFCC00")}
               hoverStyle={{ opacity: 0.8 }}
             />
+            {/* Gray Color Chip */}
+            <AutoLayout
+              width={s(44)}
+              height={s(44)}
+              cornerRadius={999}
+              fill="#8E8E93"
+              onClick={() => toggleImportantColor(selectedDateKey, "#8E8E93")}
+              hoverStyle={{ opacity: 0.8 }}
+            />
+            {/* X Mark Toggle Button */}
+            <AutoLayout
+              width={s(44)}
+              height={s(44)}
+              cornerRadius={999}
+              fill="#EFEFEF"
+              stroke="#0000001F"
+              strokeWidth={1}
+              horizontalAlignItems="center"
+              verticalAlignItems="center"
+              onClick={() => toggleImportantColor(selectedDateKey, "X")}
+              hoverStyle={{ opacity: 0.8, fill: "#E0E0E0" }}
+            >
+              <Text fontSize={s(24)} fontWeight="bold" fill="#000000">X</Text>
+            </AutoLayout>
           </AutoLayout>
         </AutoLayout>
       </AutoLayout>

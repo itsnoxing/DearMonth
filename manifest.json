@@ -6,7 +6,8 @@
   "widgetApi": "1.0.0",
   "containsWidget": true,
   "editorType": [
-    "figma"
+    "figma",
+    "figjam"
   ],
   "networkAccess": {
     "allowedDomains": [
